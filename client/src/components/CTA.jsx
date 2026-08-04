@@ -1,3 +1,5 @@
+import { Link } from 'react-router'
+
 function CTA() {
   return (
     // CTA section - an indigo panel for stronger visual emphasis
@@ -22,12 +24,12 @@ function CTA() {
 
           {/* CTA buttons - white primary pops on the indigo panel */}
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <a
-              href="#"
+            <Link
+              to="/register"
               className="inline-flex h-11 items-center justify-center rounded-lg bg-white px-5 text-base font-medium text-indigo-600 transition-colors duration-200 hover:bg-indigo-50 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/25"
             >
               Start Building Free
-            </a>
+            </Link>
             <a
               href="#"
               className="inline-flex h-11 items-center justify-center rounded-lg border border-white/30 px-5 text-base font-medium text-white transition-colors duration-200 hover:bg-white/10 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"

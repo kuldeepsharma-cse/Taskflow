@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 
 function Navbar() {
   // State that controls whether the mobile menu is open or closed
@@ -32,18 +33,18 @@ function Navbar() {
 
           {/* Desktop action buttons - hidden on small screens */}
           <div className="hidden items-center gap-3 md:flex">
-            <a
-              href="#"
+            <Link
+              to="/login"
               className="inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-100 hover:text-slate-900 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/25"
             >
               Login
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="/register"
               className="inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors duration-200 hover:bg-indigo-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/25"
             >
               Get Started
-            </a>
+            </Link>
           </div>
 
           {/* Hamburger button - visible only on small screens, toggles the mobile menu */}
@@ -91,20 +92,20 @@ function Navbar() {
               </a>
             </nav>
             <div className="mt-4 flex flex-col gap-3">
-              <a
-                href="#"
+              <Link
+                to="/login"
                 onClick={() => setMenuOpen(false)}
                 className="inline-flex h-10 w-full items-center justify-center rounded-lg px-4 text-sm font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-100 hover:text-slate-900 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/25"
               >
                 Login
-              </a>
-              <a
-                href="#"
+              </Link>
+              <Link
+                to="/register"
                 onClick={() => setMenuOpen(false)}
                 className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors duration-200 hover:bg-indigo-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/25"
               >
                 Get Started
-              </a>
+              </Link>
             </div>
           </div>
         )}

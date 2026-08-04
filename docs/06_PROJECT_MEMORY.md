@@ -224,6 +224,104 @@ Development has not yet started — the next action is to initialize the React f
 - Verified: `npm run build` ✅, `npm run lint` ✅ (oxlint). No new dependencies,
   no colors or typography changed, no new features.
 
+### 2026-08-04 — Session 17: Phase 6.1 — Authentication Routing & Project Structure
+- **Scope (user-approved): routing infrastructure only** — no forms, validation,
+  auth logic, or backend (all deferred to 6.2).
+- Created empty placeholder pages: `LoginPage.jsx`, `RegisterPage.jsx`
+  (centered page-name labels), `DashboardPlaceholder.jsx` (shows only
+  "Dashboard coming in Phase 7.").
+- Created `client/src/routes/AppRoutes.jsx` — the first real use of the `routes/`
+  folder: 4 routes (`/` → LandingPage, `/login`, `/register`, `/dashboard`).
+- Wrapped `<App />` in `<BrowserRouter>` in `main.jsx`; `App.jsx` now renders
+  `<AppRoutes />` instead of `<LandingPage />` (first real use of the router
+  installed in Phase 3).
+- `Navbar.jsx`: Login/Get Started buttons (desktop + mobile) changed from
+  `<a href="#">` to react-router `<Link to="/login">` / `<Link to="/register">`.
+- `CTA.jsx`: "Start Building Free" → `<Link to="/register">`.
+- Verified: `npm run build` ✅, `npm run lint` ✅ (oxlint). No new dependencies.
+
+### 2026-08-04 — Session 18: Phase 6.2 — Authentication UI (Login & Register)
+- **Scope (user-approved): UI only** — reusable components + controlled inputs with
+  placeholder state; no validation, error messages, localStorage, guards, auth,
+  API, password visibility toggle, or remember-me/forgot-password.
+- Created `client/src/components/Input.jsx` — reusable controlled form field
+  (props: `label`, `type`, `id`, `name`, `value`, `onChange`, `placeholder`,
+  `autoComplete`) styled exactly per design system §13 (h-10, rounded-lg,
+  slate-300 border, indigo focus ring, label `mb-1.5 text-sm font-medium`).
+- Created `client/src/layouts/AuthLayout.jsx` — first real use of the `layouts/`
+  folder: centered shell on `bg-slate-50` (`min-h-screen`, `px-4 py-12`,
+  `max-w-md`), TaskFlow logo lockup linking back to `/`, white card
+  (§14: `rounded-xl border-slate-200 shadow-sm`), `title` prop + `children`.
+- Rebuilt `LoginPage.jsx` — `useState` for email/password, two `Input` fields
+  (autoComplete email / current-password), full-width primary **Login** button,
+  "Don't have an account? Create one" → `/register`.
+- Rebuilt `RegisterPage.jsx` — `useState` for name/email/password/confirm,
+  four `Input` fields (autoComplete name/email/new-password), full-width primary
+  **Create Account** button, "Already have an account? Log in" → `/login`.
+- Both forms: `noValidate` (no browser-native bubbles yet) + `onSubmit`
+  `preventDefault` (no page reload) — custom validation comes in Phase 6.3.
+- Reuse confirmed: both pages share `Input` + `AuthLayout` — zero duplicated markup.
+- Verified: `npm run build` ✅, `npm run lint` ✅ (oxlint). No new dependencies.
+
+### 2026-08-04 — Session 19: Phase 6.3 — Form Logic & Client-side Validation
+- **Scope (user-approved): validation only** — no localStorage, guards, redirects,
+  auth, API, password toggle, or remember-me/forgot-password.
+- `Input.jsx` extended with an `error` prop: red border + red focus ring
+  (`border-red-500 ring-2 ring-red-500/25`) per design system §13, inline helper
+  text `text-xs text-red-600` below the field, plus `aria-invalid` /
+  `aria-describedby` for screen readers. No duplicate markup — error UI lives in
+  the one shared component.
+- Created `client/src/utils/validate.js` — `isValidEmail()` (first real use of the
+  `utils/` folder): simple `^\S+@\S+\.\S+$`-style check shared by both pages, so
+  the email rule is written once.
+- `LoginPage.jsx`: rules — email required, email format, password required.
+- `RegisterPage.jsx`: rules — name required, email required, email format,
+  password ≥ 6 characters, confirm password required + must match password.
+- Pattern on both pages (beginner-friendly, no duplication):
+  - `errors` state object keyed by field name.
+  - `validate()` collects all problems into a fresh `newErrors` object and returns
+    valid only if it is empty — submission is blocked when validation fails.
+  - One shared `handleChange(field, value)` updates the value and clears that
+    field's error while typing (dynamic key + spread).
+  - Each validation rule explained with a comment in the code.
+- Verified: `npm run build` ✅, `npm run lint` ✅ (oxlint). No new dependencies.
+
+### 2026-08-04 — Session 20: Phase 6.4 — Mock Authentication & Route Guards
+- **Scope (user-approved): mock auth + guards only** — no backend, API calls,
+  Axios, JWT, Context API, logout, remember-me, forgot-password, password toggle,
+  or UI/styling changes.
+- Created `client/src/routes/RequireAuth.jsx` — route guard for `/dashboard`:
+  reads the mock flag (`localStorage.getItem('isAuthenticated') === 'true'`);
+  renders `<Navigate to="/login" replace />` when not authenticated, otherwise
+  renders `children`.
+- Created `client/src/routes/RedirectIfAuthenticated.jsx` — inverse guard for
+  `/login` + `/register` (user decision, 2026-08-04): renders `<Navigate
+  to="/dashboard" replace />` when already authenticated, otherwise renders
+  `children`. Rule 5 written once, both auth pages stay markup-lean.
+- `AppRoutes.jsx`: `/dashboard` wrapped in `<RequireAuth>`; `/login` and
+  `/register` wrapped in `<RedirectIfAuthenticated>` — guards live in `routes/`,
+  pages stay pure.
+- `LoginPage.jsx` + `RegisterPage.jsx`: `useNavigate`; on a **valid** submit →
+  `localStorage.setItem('isAuthenticated', 'true')` → `navigate('/dashboard')`.
+  Invalid submits still blocked by validation (Phase 6.3).
+- DashboardPlaceholder untouched — still the Phase 7 placeholder.
+- Verified: `npm run build` ✅, `npm run lint` ✅ (oxlint). No new dependencies.
+- **Phase 6 (Authentication UI) is now complete** — matches `docs/04` §7
+  (forms + validation + frontend route guards). Mock flag will be replaced by
+  real JWT auth in Phase 11 (token storage question still open, §6).
+
+### 2026-08-04 — Session 21: Phase 6.5 — Authentication Polish (Logout)
+- **Scope (user-approved): logout only** — no backend, API, JWT, Context API,
+  or additional features; guards untouched.
+- `DashboardPlaceholder.jsx` only: added a **Logout** ghost button (§12 ghost
+  variant: `text-slate-600 hover:bg-slate-100`, h-10, focus ring, active:scale-95)
+  below the placeholder text; page wrapper changed to a flex column with `gap-6`
+  to stack text + button.
+- Handler: `handleLogout()` → `localStorage.removeItem('isAuthenticated')` →
+  `navigate('/login')` via `useNavigate`. Mirrors docs/02 §7 step 4 (client
+  discards the auth token).
+- Verified: `npm run build` ✅, `npm run lint` ✅ (oxlint). No new dependencies.
+
 ## 4. Decisions Log
 
 | # | Date       | Decision | Reason | Alternatives considered |
@@ -256,6 +354,11 @@ Development has not yet started — the next action is to initialize the React f
 | 26 | 2026-08-02 | New shared `AppWindow.jsx` mockup component (`detailed` prop) used by Hero (compact) and Dashboard Preview (detailed). | One consistent "product" across the page; no duplicate mockup code; beginner-friendly props lesson. | Keep two separate mockups. |
 | 27 | 2026-08-02 | Tighter spacing scale (~30%): sections `py-14`, Hero `min-h-[70vh]` + `py-12`, CTA `py-12` + panel `py-12`, content gaps `mt-8`, footer `py-10`. | Page felt stretched; consistent SaaS rhythm (user-requested 25–35%). | Keep `py-20`. |
 | 28 | 2026-08-02 | App window styling: `rounded-lg`, no hover elevation, subtle `border-slate-200 shadow-sm` (hero keeps `shadow-lg` as focal anchor), internal paddings reduced. | Windows don't lift like cards; subtle frame reads as a real app screenshot. | Card-style hover elevation. |
+| 29 | 2026-08-04 | Phase 6 split into sub-phases: 6.1 routing infrastructure first (empty pages + AppRoutes + BrowserRouter + Link conversions), forms/validation/mock auth deferred to 6.2. | Smallest reviewable increment; router was idle since Phase 3 and everything builds on it. | All of Phase 6 in one go. |
+| 30 | 2026-08-04 | Auth UI built from two reusable pieces: `Input` (controlled field, design-system §13) + `AuthLayout` (centered card shell, §14). Forms use `noValidate` + `preventDefault` so no native validation or reloads happen before custom validation (6.3). | One field component, two pages, zero duplicated markup — same pattern as FeatureCard/StepCard. | Inline fields per page. |
+| 31 | 2026-08-04 | Validation lives in an `errors` object per page (`validate()` on submit, field error cleared while typing) + one shared `isValidEmail()` in `utils/validate.js`. Error visuals handled by the single `error` prop on `Input`. | Rules differ per page, but the pattern and email rule are shared; keeps logic beginner-readable. | Shared validation module for all rules. |
+| 32 | 2026-08-04 | Mock auth via localStorage flag (`isAuthenticated === 'true'`) + two route guards: `RequireAuth` (protects `/dashboard`) and `RedirectIfAuthenticated` (hides `/login`/`/register` when logged in). Guards compose around pages in `AppRoutes` — pages stay pure. | Beginner-friendly way to deliver real frontend guard behavior before the backend (Phase 11); mirrors docs/02 §7.5. | Context API now; single inline check per page. |
+| 33 | 2026-08-04 | Logout = ghost button on `DashboardPlaceholder` clearing the mock flag (`localStorage.removeItem`) + `navigate('/login')`. | Completes the mock auth loop (docs/02 §7 step 4) with existing design-system tokens only. | Logout in a future Navbar/profile menu (Phase 7+). |
 
 ## 5. Approvals
 
@@ -275,6 +378,11 @@ Development has not yet started — the next action is to initialize the React f
 - ✅ 2026-08-02 — Phase 5.7: footer plan — approved (adjustment: links match real sections, "About" → "Dashboard Preview", section `id` anchors added).
 - ✅ 2026-08-02 — Final landing page UI polish pass — approved (decisions: hero shadow → `shadow-lg`; focus-visible rings; smooth scrolling via `scroll-smooth`).
 - ✅ 2026-08-02 — Final spacing + dashboard preview refinement — approved (adjustment: full designer pass — hero mockup replaced with the shared realistic AppWindow, cohesive hierarchy).
+- ✅ 2026-08-04 — Phase 6.1: authentication routing & project structure plan — approved (scope: routing infrastructure only — empty pages, AppRoutes, BrowserRouter, Navbar/CTA Link conversions; no forms, validation, auth, or backend).
+- ✅ 2026-08-04 — Phase 6.2: authentication UI plan — approved (scope: UI only — reusable Input + AuthLayout, controlled Login/Register forms; no validation, error messages, localStorage, guards, auth, API, password toggle, remember-me/forgot-password).
+- ✅ 2026-08-04 — Phase 6.3: form logic & client-side validation plan — approved (scope: validation only — required/format/length/match rules, inline errors per §13, submission blocked on failure; no localStorage, guards, redirects, auth, API, password toggle, remember-me/forgot-password).
+- ✅ 2026-08-04 — Phase 6.4: mock authentication & route guards plan — approved (scope: RequireAuth + RedirectIfAuthenticated guards, localStorage mock flag, redirects on valid submit and on guarded routes; no backend, API, Axios, JWT, Context API, logout, remember-me, forgot-password, password toggle, or UI changes).
+- ✅ 2026-08-04 — Phase 6.5: authentication polish (logout) plan — approved (scope: Logout ghost button on DashboardPlaceholder clearing the mock flag and navigating to /login; no backend, API, JWT, Context API, or additional features; guards untouched).
 
 ## 6. Open Questions / Blockers
 
@@ -287,7 +395,7 @@ Development has not yet started — the next action is to initialize the React f
 
 ## 7. Current Status
 
-- **Current Phase:** Phase 5 — Landing Page ([04_DEVELOPMENT_PHASES.md](./04_DEVELOPMENT_PHASES.md) §6)
+- **Current Phase:** Phase 6 — Authentication UI ([04_DEVELOPMENT_PHASES.md](./04_DEVELOPMENT_PHASES.md) §7)
 - **Completed:**
   - ✅ Project Requirements
   - ✅ Architecture
@@ -307,9 +415,26 @@ Development has not yet started — the next action is to initialize the React f
   - ✅ Final spacing + dashboard preview refinement — tighter rhythm (~30%),
     Hero `min-h-[70vh]`, shared `AppWindow.jsx` (hero + preview show one product),
     window not card (build ✅, lint ✅)
+  - ✅ Phase 6.1 — Authentication Routing & Project Structure (build ✅, lint ✅):
+    empty pages (`/login`, `/register`, `/dashboard` placeholder), `AppRoutes.jsx`,
+    `BrowserRouter` in main.jsx, Navbar + CTA wired to real routes via `<Link>`
+  - ✅ Phase 6.2 — Authentication UI (build ✅, lint ✅): reusable `Input.jsx` +
+    `AuthLayout.jsx`, full Login/Register forms (controlled, `noValidate`,
+    `preventDefault`) — UI only, no logic
+  - ✅ Phase 6.3 — Form Logic & Client-side Validation (build ✅, lint ✅):
+    `errors` object pattern, inline errors via `Input` `error` prop (§13 styles,
+    aria-invalid), shared `isValidEmail()` in `utils/validate.js` — submission
+    blocked when invalid; still no auth
+  - ✅ Phase 6.4 — Mock Authentication & Route Guards (build ✅, lint ✅):
+    `RequireAuth` + `RedirectIfAuthenticated` guards, localStorage mock flag,
+    valid submit → `/dashboard`, guarded route redirects — **Phase 6 complete**
+  - ✅ Phase 6.5 — Authentication Polish: Logout (build ✅, lint ✅):
+    ghost **Logout** button on `DashboardPlaceholder` clears the mock flag and
+    navigates to `/login` — mock auth loop now complete
 - **Next Task:**
-  - Responsive testing of the full landing page (awaiting user review of the refinement).
+  - Phase 7 — Dashboard UI (layout with sidebar + header, workspaces overview,
+    project cards, task statistics, empty states) — awaiting user approval to start.
 
 ---
 
-*Last updated: 2026-08-02.*
+*Last updated: 2026-08-04.*
