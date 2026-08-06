@@ -233,6 +233,103 @@ One talking point per technology (cross-reference:
     (Express + Prisma + PostgreSQL), REST integration with Axios, testing, and
     deployment. v2.0: comments, roles, real-time updates.
 
+36. **What is a layout route and what does `<Outlet />` do?**
+    A route whose element renders a shared shell (sidebar + header) around child
+    routes. `<Outlet />` is the placeholder where the matched child renders.
+    `/dashboard` is a layout route: `RequireAuth → DashboardLayout → DashboardPage`.
+
+37. **What is `NavLink` and how is it different from `Link`?**
+    `NavLink` knows its own active state: `className={({ isActive }) => …}`
+    switches to indigo when the URL matches. `Link` just navigates. `end` makes
+    the match exact so `/dashboard` stays active only on that page.
+
+38. **Why are Projects/Tasks/Calendar/Settings not links in the sidebar?**
+    Their pages don't exist yet — a link would 404 (fake behavior). They render
+    as muted visual items and become real `NavLink`s when their routes are added.
+
+39. **Why did we install lucide-react?**
+    The design system documents it as the icon library (one consistent stroke
+    style). Icons are just React components — storing them in the nav data array
+    (`icon: LayoutDashboard`) and rendering `<Icon />` keeps nav items data-driven.
+
+40. **How does the dashboard avoid duplicated JSX?**
+    Three reusable components: `StatCard`, `ProjectCard`, `EmptyState`. Each
+    takes data via props (`<ProjectCard project={p} />`) and is rendered by
+    `.map()` over mock arrays — adding a stat/card is one line in the array.
+
+41. **Why does the progress bar use an inline style?**
+    Tailwind can't compute a width from data at build time, so the bar fill
+    gets `style={{ width: \`${project.progress}%\` }}` — React's way to pass
+    dynamic values straight into CSS.
+
+42. **How does the empty state work if the data is hardcoded?**
+    Conditional rendering: `projects.length === 0 ? <EmptyState /> : <grid>`.
+    Today the mock array always has items, so the grid shows; when Phase 11
+    loads real data, an empty list automatically shows the EmptyState — the
+    UI is already wired for it.
+
+43. **Why is ProjectCard not clickable?**
+    There is no project page or detail route yet — a clickable card would be a
+    fake action (same rule as decision 20). It becomes interactive when the
+    Projects feature arrives.
+
+44. **How do the 5 dashboard pages share one shell and one guard?**
+    Nested routes. All pages (`dashboard`, `projects`, `tasks`, `calendar`,
+    `settings`) sit as children of one layout route: `RequireAuth → DashboardLayout
+    → <Outlet />`. Adding a page = one `<Route path=…>` line; the guard and the
+    sidebar/header apply automatically.
+
+45. **How does the sidebar know which item is active?**
+    Every item is a `NavLink` with `className={({ isActive }) => …}` — React
+    Router compares the URL and hands back a boolean, so the active highlight
+    updates on navigation with zero extra state. The `end` prop keeps the match
+    exact.
+
+46. **Why are the placeholder pages so small?**
+    They render one shared `EmptyState` component with different props (icon,
+    title, copy). Four pages, zero duplicated UI — the page file is just the
+    props for that feature.
+
+47. **What is a "nested route" vs a "layout route"?**
+    A layout route is a parent that renders a shared shell; a nested route is a
+    child whose element appears inside the parent's `<Outlet />`. Here
+    `/dashboard` is the layout route and `projects`, `tasks`, etc. are nested
+    routes — the URL is `/dashboard/projects`, the shell stays mounted.
+
+48. **Why is the dashboard search an input that does nothing?**
+    It is styled like the real thing (h-10, placeholder, focus ring) but has no
+    state or handler — search logic comes in Phase 11. An honest affordance
+    beats a fake result list; the focus ring requires a focusable element, so
+    the "visual-only span" approach was retired in the header (decision 39).
+
+49. **Why do informational cards not look clickable?**
+    `StatCard`/`ProjectCard` hover is only `border-slate-300` + `shadow-md`
+    with an explicit `cursor-default` — no pointer cursor, translate, scale,
+    or lift. A hover that "lifts" the card promises a click that doesn't
+    exist (decision 40).
+
+50. **Why 150ms for nav hovers and 200ms for cards?**
+    Design system §17: 200ms default, 100–150ms for micro feedback. Nav rows
+    and the logo are micro feedback (fast color change); cards use a shadow
+    transition at the default duration. Consistent, calm motion — no bounce
+    or stagger.
+
+51. **How do you make a progress bar accessible?**
+    `role="progressbar"` + `aria-valuenow/aria-valuemin/aria-valuemax` +
+    an accessible name. Without it, a screen reader only hears the "72%"
+    text with no context that it is a progress indicator (added in 7.5).
+
+52. **Why is the mock avatar `aria-hidden`?**
+    It renders "AJ" — placeholder text with no real user behind it. Screen
+    readers would announce meaningless initials, so the chrome is hidden from
+    the accessibility tree until the real profile exists.
+
+53. **What does a QA phase look like in practice?**
+    Audit first (routes vs nav, guards, logout, unused imports, dead code,
+    token consistency, focus rings), then fix only genuine findings — in 7.5
+    that was exactly 3 ARIA issues. Unchanged files stay untouched; the diff
+    stays small so history stays readable.
+
 ## 8. Demo Script
 
 - TODO: Step-by-step live demo walkthrough (added when the app is demoable).
@@ -308,6 +405,88 @@ Detailed rationale: [02_ARCHITECTURE.md](./02_ARCHITECTURE.md) §2 and §3.
   custom config — and stays consistent by construction.
 - **Typography choice:** Inter at 14px base — denser, tool-like UIs use smaller
   base text than websites; hierarchy comes from weight (500/600) and size, not bold.
+
+### 9.7 Dashboard shell learnings (Phase 7.1)
+
+- **Layout routes are the React Router way to build app shells.** Instead of
+  pasting the same sidebar/header into every page, the layout renders once with
+  an `<Outlet />` where the matched child page appears. Nested route:
+  `RequireAuth` (guard) → `DashboardLayout` (shell) → `DashboardPage` (content).
+  This is why the `layouts/` folder exists.
+- **`NavLink` vs `Link`:** `Link` navigates blindly; `NavLink` exposes
+  `isActive` so the current page is highlighted. The `end` prop makes the match
+  exact — without it, `/dashboard` would stay "active" on any deeper path.
+- **Icons as data:** lucide-react icons are components, so they live inside the
+  nav data array and are rendered with a single `<Icon />` — the array stays the
+  single source of truth for the whole nav, same `.map()` pattern as Features.
+- **Honesty in UI:** sidebar items for pages that don't exist yet are muted,
+  non-clickable spans. A dead link would be fake behavior — the same rule that
+  made "New Task" a visual-only `<span>` on the landing page mockups.
+
+### 9.8 Dashboard content learnings (Phase 7.2)
+
+- **Components are data-driven:** `StatCard`, `ProjectCard`, `EmptyState` know
+  nothing about the dashboard — they receive everything through props and are
+  stamped out with `.map()` from arrays. This is the same recipe as
+  `FeatureCard`/`StepCard`: data in one place, UI in another.
+- **Props can carry components:** an icon in the data array is a component
+  reference (`icon: FolderKanban`); renaming on destructure (`icon: Icon`) and
+  rendering `<Icon />` is React's pattern for "render whatever I was given".
+- **Dynamic values need inline styles:** `style={{ width: '72%' }}` for the
+  progress fill — Tailwind classes are written by hand at build time, so data
+  values must go through the `style` prop.
+- **Conditional rendering prepares for real data:** `projects.length === 0`
+  swaps the grid for `<EmptyState />` today, so the empty UI is already in
+  place for Phase 11 — no rework when the API returns zero projects.
+- **Statuses map to tokens:** each project status maps to a §6 badge style
+  (green/amber/red soft pills) via a plain object lookup — one place decides
+  all badge colors.
+
+### 9.9 Navigation & placeholder learnings (Phase 7.3)
+
+- **Nested routes = free sharing.** Placing `projects`, `tasks`, `calendar`,
+  `settings` as children of the `/dashboard` layout route means the guard
+  (`RequireAuth`) and the shell (`DashboardLayout`) apply to every one of them
+  automatically. The URL (`/dashboard/projects`) stays readable, and adding a
+  future page is a one-line change in `AppRoutes`.
+- **`NavLink` does the highlighting for you.** Instead of reading the URL
+  manually and comparing strings, `className` receives `isActive` — the router
+  does the match. Data (nav array) and behavior (active styles) stay separate.
+- **Placeholders can be one component call.** A "Coming Soon" page is just
+  `<EmptyState>` with different props; four pages need four tiny files, not
+  four copies of card/dashed-border markup. Same props-driven recipe as
+  FeatureCard/StatCard.
+
+### 9.10 Dashboard polish learnings (Phase 7.4)
+
+- **Hover ≠ clickable.** `transition-shadow + hover:shadow-md + hover:border-
+  slate-300` gives a gentle response while `cursor-default` tells the truth —
+  these cards are informational. If a hover makes something feel tappable, it
+  must actually be tappable (decision 40).
+- **Danger is a token.** Destructive actions have their own variant: the
+  logout button uses §12 danger ghost (`text-red-600 hover:bg-red-50`) — the
+  red hue is a semantic signal, not decoration.
+- **An affordance can be honest and inert.** The search field is a real
+  `<input>` (focusable, focus ring, placeholder) with no handler yet. It
+  doesn't fake results; it just waits for Phase 11.
+- **Motion durations express hierarchy.** 150ms for micro feedback (nav,
+  logo, input border), 200ms for shadow transitions — per §17, never slower
+  than 300ms and never decorative.
+
+### 9.11 QA & accessibility learnings (Phase 7.5)
+
+- **QA is audit-then-fix, not refactor.** The checklist ran over every
+  dashboard file: routes ↔ nav match, guards, logout, unused imports, dead
+  code, token/Tailwind consistency, focus states. Only real findings get
+  touched; the rest stays as-is — small diffs keep history readable.
+- **ARIA tells assistive tech what the DOM can't.** The progress bar fill is
+  just a colored div with a width — `role="progressbar"` + `aria-valuenow`
+  + `aria-valuemin/max` turns it into a proper widget for screen readers.
+- **Placeholder chrome can be hidden.** Mock avatar ("AJ") and the decorative
+  bell have `aria-hidden="true"` — anything that carries no real information
+  should stay out of the accessibility tree.
+- **Accessible names for landmarks:** `<nav aria-label="Main navigation">`
+  disambiguates when multiple nav elements exist later.
 
 ---
 

@@ -322,6 +322,151 @@ Development has not yet started — the next action is to initialize the React f
   discards the auth token).
 - Verified: `npm run build` ✅, `npm run lint` ✅ (oxlint). No new dependencies.
 
+### 2026-08-06 — Session 22: Phase 7.1 — Dashboard Shell (layout only)
+- **Scope (user-approved):** basic dashboard shell only — sidebar navigation, top
+  header, main content area, mock data. No project cards, statistics, charts,
+  workspaces UI, Kanban, search/notification logic, new routes, backend, API, or DB.
+- Renamed `DashboardPlaceholder.jsx` → `DashboardPage.jsx` (move, no delete, per
+  user — file preserved). Content replaced with a generic "Welcome back!" heading
+  (no hardcoded user name, per user), a one-line description, and a dashed
+  empty-state card (§14 token) as the honest placeholder for Phase 7.2 content.
+- Created `client/src/layouts/DashboardLayout.jsx` — the app shell (first real use
+  of the `layouts/` folder as a **layout route**):
+  - **Sidebar** (`hidden lg:flex`, sticky `h-screen`, white + `border-r`): logo
+    lockup linking to `/dashboard`; 5 nav items from a data array (`navItems`
+    with lucide icon components + `.map()`); **Dashboard** is a real `NavLink`
+    (`end`, indigo active state via `isActive`), the other 4 items are visual-only
+    spans (`text-slate-400 cursor-default`) until their pages exist — no dead links
+    (extends decision 20's "never fake behavior").
+  - **Top header** (sticky, `h-14`, white + `border-b`): visual-only search pill
+    (Search icon + "Search tasks…"), visual-only bell with red dot, mock avatar
+    "AJ", and the **Logout** ghost button (icon + label) — the Phase 6.5 handler
+    moved here (clears `isAuthenticated` → `/login`), so logout is preserved.
+  - Main area renders `<Outlet />` for the nested page.
+- Modified `client/src/routes/AppRoutes.jsx`: `/dashboard` is now a **nested
+  layout route** — `RequireAuth` → `<DashboardLayout>` → index `<DashboardPage />`.
+  Guards untouched.
+- **Installed `lucide-react`** (decision 10 + design system §15 said "installed
+  with the UI phase"; first real use — sidebar, search, bell, logout icons, 16px
+  `h-4` inline). Replaces the inline-SVG stopgap from the landing phases.
+- Verified: `npm run build` ✅, `npm run lint` ✅ (oxlint). Audit warning unchanged
+  (known react-router advisory, decision 06).
+
+### 2026-08-06 — Session 23: Phase 7.2 — Dashboard Content
+- **Scope (user-approved):** dashboard content only — statistics cards, recent
+  projects, recent activity, empty state. No changes to routing, auth,
+  DashboardLayout, sidebar, header, or any existing navigation. Hardcoded mock
+  data inline; no backend/API/Context/localStorage; no new dependencies.
+- Created three reusable components in `client/src/components/` (only where they
+  remove duplication):
+  - **`StatCard.jsx`** — props `icon` (lucide component), `title`, `value`,
+    `description`. §14 default card; slate icon tile (`h-10 w-10 rounded-lg
+    bg-slate-100 text-slate-600`, §15); `text-sm` slate-500 title, `text-2xl`
+    semibold slate-900 value, `text-xs` slate-400 description.
+  - **`ProjectCard.jsx`** — one `project` object prop `{ name, description,
+    progress, tasks, dueDate, status }`. Status badge map (§6 soft pills: On
+    Track green / At Risk amber / Behind red, neutral fallback for unknown
+    statuses); progress bar (`bg-slate-100` track, `bg-indigo-600` fill sized by
+    inline `style={{ width: '%' }}`) + `%` label; meta row (`ListTodo` "12
+    tasks" · `Calendar` "Due Aug 28", `text-xs`, `border-t` divider). Non-
+    clickable — no project pages exist yet (decision 20 honesty rule).
+  - **`EmptyState.jsx`** — props `icon`, `title`, `description`. §14 dashed
+    token (`border-dashed border-slate-300 p-8 sm:p-12 text-center`), 48px
+    slate-100 icon tile, `h-6 w-6` muted icon (FeatureCard precedent), `text-base`
+    title, `text-sm` description.
+- Rewrote `client/src/pages/DashboardPage.jsx` (content only):
+  - Three inline mock arrays (`stats` 4 / `projects` 3 / `activities` 4) —
+    same pattern as `Features`/`AppWindow`; generic "Welcome back!" heading kept.
+  - Statistics grid (`grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4`):
+    Total Projects 12 (FolderKanban), Total Tasks 48 (ListTodo), Completed 31
+    (CheckCircle2), Pending 17 (Clock) — 31 + 17 = 48, numbers consistent.
+  - Recent Projects: `projects.length === 0 ? <EmptyState /> :` grid of
+    `ProjectCard`s (`sm:grid-cols-2 xl:grid-cols-3 gap-4`) — Website Redesign
+    72% On Track / Mobile App MVP 45% At Risk / Backend Migration 90% Behind.
+  - Recent Activity: white card (§14), dot-indicator rows via `.map()` — same
+    visual language as the landing `AppWindow` activity panel.
+  - Page rhythm `space-y-8` (section gap, §9).
+- Verified: `npm run build` ✅, `npm run lint` ✅ (oxlint). No new dependencies.
+
+### 2026-08-06 — Session 24: Phase 7.3 — Dashboard Navigation & Placeholder Pages
+- **Scope (user-approved):** make all 5 sidebar items functional routes; 4
+  placeholder pages; no changes to auth, guards, login/register, or dashboard
+  content. Frontend-only; no fake functionality, backend, APIs, Context, or
+  state management; no new dependencies.
+- Created 4 placeholder pages in `client/src/pages/` — each renders **only the
+  existing `EmptyState` component** (zero duplicated UI) with the matching
+  sidebar icon + feature-specific copy ("…Coming Soon" + "implemented in a
+  later phase"):
+  - `ProjectsPage.jsx` (FolderKanban), `TasksPage.jsx` (ListTodo),
+    `CalendarPage.jsx` (Calendar), `SettingsPage.jsx` (Settings).
+- Modified `client/src/routes/AppRoutes.jsx`: added 4 **nested routes** inside
+  the protected `/dashboard` layout route (`projects`, `tasks`, `calendar`,
+  `settings`) — every page automatically inherits `RequireAuth` + the
+  `DashboardLayout` shell. Guards and existing routes untouched.
+- Modified `client/src/layouts/DashboardLayout.jsx`: all 5 `navItems` now have
+  a `to` route; the visual-only `<span>` branch was removed — every item is a
+  `NavLink` with `end` + indigo `isActive` highlighting, so the active state
+  follows the URL on every page. Decision 36's "visual-only spans" are now
+  obsolete (their pages exist).
+- Verified: `npm run build` ✅, `npm run lint` ✅ (oxlint). No new dependencies.
+
+### 2026-08-06 — Session 25: Phase 7.4 — Dashboard UI Polish (visual only)
+- **Scope (user-approved):** visual polish only — no new pages, backend, APIs,
+  Context, CRUD, fake functionality, routing, or auth changes. All tweaks on
+  design-system tokens (§12/§14/§17, 150–200ms).
+- `DashboardLayout.jsx`:
+  - **Logout** → proper §12 **danger ghost** (`text-red-600 hover:bg-red-50`,
+    `rounded-lg h-10 gap-2`, indigo focus ring, `active:scale-95`); label
+    `hidden sm:inline` → icon-only + `aria-label` on small screens.
+  - **Search pill → real inert `<input type="search">`** (user decision via
+    question): §13 styling (`h-10`, `pl-9` icon, `placeholder:text-slate-400`,
+    `hover:border-slate-300`, `focus:border-indigo-500` + indigo focus ring,
+    `focus:bg-white`, 150ms border transition). Typing is inert — no state,
+    no handler, no search logic (Phase 11). Replaces the non-focusable span
+    (updates decision 20/38-era "visual-only" approach for the app header).
+  - **Avatar** `h-9 w-9` → `h-10 w-10 text-sm` (icon-button token) +
+    `select-none`; right cluster `gap-2 sm:gap-4`; bell `h-10 w-10`, dot
+    `aria-hidden`.
+  - **Header padding** `px-4 sm:px-6` → `px-4 sm:px-6 lg:px-8` (aligns with
+    main content); **main** `p-6 sm:p-8` → `p-4 sm:p-6 lg:p-8` (responsive §9).
+  - **Sidebar:** active state stronger (`text-indigo-600` → `text-indigo-700`),
+    nav + logo transitions `duration-200` → `duration-150` (§17 micro feedback),
+    logo link got a focus-visible ring.
+- `StatCard.jsx` + `ProjectCard.jsx`: **subtle hover only** — `transition-shadow
+  duration-200 hover:border-slate-300 hover:shadow-md` + explicit
+  `cursor-default`. Per user's UX rule: no pointer cursor, no translate/scale/
+  lift — informational cards never look clickable (§14/§17).
+- `EmptyState.jsx`: centered presentation `mx-auto w-full max-w-2xl`, `p-8
+  sm:p-12` (both usages: projects section + placeholder pages).
+- `DashboardPage.jsx`: rhythm `space-y-8` → `space-y-6 lg:space-y-8`.
+- Verified: `npm run build` ✅, `npm run lint` ✅ (oxlint). No new dependencies.
+
+### 2026-08-06 — Session 26: Phase 7.5 — Dashboard Cleanup, QA & Finalization
+- **Scope (user-approved):** QA pass only — no new features, no UI redesign, no
+  behavior changes. Only measurable improvements; unchanged files left untouched
+  (per user: no formatting churn, no renames, minimal diffs to preserve history).
+- **Full code review performed** (DashboardLayout, DashboardPage, 4 placeholder
+  pages, StatCard, ProjectCard, EmptyState, AppRoutes, guards): routes ↔ sidebar
+  nav match (5/5), logout flow intact, guards intact, **no unused imports,
+  variables, or dead code**, no duplication worth extracting, design tokens and
+  Tailwind usage consistent (§12/§14/§15/§17), all interactive elements have
+  focus-visible rings.
+- **Changes made (only the 3 genuine gaps found):**
+  1. `ProjectCard.jsx` — progress bar now exposes standard progress semantics:
+     `role="progressbar"` + `aria-valuenow={progress}` + `aria-valuemin/max` +
+     `aria-label="Progress"` (screen readers previously only heard the "72%" text).
+  2. `DashboardLayout.jsx` — mock avatar + decorative bell wrapper marked
+     `aria-hidden="true"` (avatar previously announced "AJ" — placeholder chrome
+     conveys no real info); sidebar `<nav>` got `aria-label="Main navigation"`.
+  3. `DashboardLayout.jsx` — trimmed one overly long header comment.
+- Everything else verified clean and left untouched.
+- Verified: `npm run build` ✅, `npm run lint` ✅ (oxlint). No new dependencies.
+- **Remaining debt (documented):** placeholder pages have no `h1` heading (by
+  design, decision 38 — single EmptyState); real pages in later phases introduce
+  proper heading structure. Search stays inert until Phase 11. Mock data replaced
+  by the API in Phase 11. Dashboard frontend now considered production-quality
+  and interview-ready — **Phase 7 complete, final**.
+
 ## 4. Decisions Log
 
 | # | Date       | Decision | Reason | Alternatives considered |
@@ -359,6 +504,13 @@ Development has not yet started — the next action is to initialize the React f
 | 31 | 2026-08-04 | Validation lives in an `errors` object per page (`validate()` on submit, field error cleared while typing) + one shared `isValidEmail()` in `utils/validate.js`. Error visuals handled by the single `error` prop on `Input`. | Rules differ per page, but the pattern and email rule are shared; keeps logic beginner-readable. | Shared validation module for all rules. |
 | 32 | 2026-08-04 | Mock auth via localStorage flag (`isAuthenticated === 'true'`) + two route guards: `RequireAuth` (protects `/dashboard`) and `RedirectIfAuthenticated` (hides `/login`/`/register` when logged in). Guards compose around pages in `AppRoutes` — pages stay pure. | Beginner-friendly way to deliver real frontend guard behavior before the backend (Phase 11); mirrors docs/02 §7.5. | Context API now; single inline check per page. |
 | 33 | 2026-08-04 | Logout = ghost button on `DashboardPlaceholder` clearing the mock flag (`localStorage.removeItem`) + `navigate('/login')`. | Completes the mock auth loop (docs/02 §7 step 4) with existing design-system tokens only. | Logout in a future Navbar/profile menu (Phase 7+). |
+| 34 | 2026-08-06 | Dashboard shell = **layout route pattern**: `DashboardLayout` (sidebar + header + `<Outlet />`) wraps the index `DashboardPage` under `/dashboard`. `DashboardPlaceholder.jsx` **renamed** (not deleted) to `DashboardPage.jsx` per user. | `layouts/` folder exists for exactly this; standard React Router pattern; Phase 8 (Kanban) reuses the same shell; rename preserves the file. | Single-file replacement in the placeholder. |
+| 35 | 2026-08-06 | **lucide-react installed** (first use) — sidebar/icons: LayoutDashboard, FolderKanban, ListTodo, Calendar, Settings, Search, Bell, LogOut (16px `h-4`, stroke 2). | Design system §15 + decision 10 documented it as the UI-phase icon library; consistent stroke style; replaces copied inline SVGs. | Keep inline SVGs / dot indicators. |
+| 36 | 2026-08-06 | Sidebar items without a page yet (Projects, Tasks, Calendar, Settings) are **visual-only spans** (`text-slate-400 cursor-default`), not links. | No dead links — same honesty rule as decision 20; they become `NavLink`s when their pages exist. | All items as links to future routes. |
+| 37 | 2026-08-06 | Dashboard content built from three reusable components: `StatCard`, `ProjectCard`, `EmptyState` — driven by props; mock data arrays live inline in `DashboardPage` (same pattern as `Features`/`AppWindow`); projects grid renders `EmptyState` when the array is empty (conditional rendering, ready for real data in Phase 11). | One component per repeated UI block — zero duplicated JSX; beginner-friendly props lesson. | Inline markup per section. |
+| 38 | 2026-08-06 | Placeholder pages (`Projects`/`Tasks`/`Calendar`/`Settings`) render **only the shared `EmptyState`** (no page header wrapper) and live as **nested routes** under the `/dashboard` layout route. | Every placeholder reuses one component (zero duplicated UI); nesting inherits `RequireAuth` + `DashboardLayout` automatically — no per-page wrappers. | Per-page headers; separate top-level routes. |
+| 39 | 2026-08-06 | Dashboard search becomes a **real, inert `<input type="search">`** (styled §13, focus ring, placeholder) instead of a visual-only span. | User-approved via question; focus ring needs a focusable element; typing is uncontrolled and does nothing until Phase 11 — no fake search results, but a standard, honest affordance. | Keep non-focusable span. |
+| 40 | 2026-08-06 | Informational cards (`StatCard`, `ProjectCard`) get **subtle hover only**: `hover:border-slate-300 hover:shadow-md` + explicit `cursor-default`; no pointer, translate, scale, or lift. Logout is the §12 **danger ghost** variant. | User's UX rule: informational cards must never look clickable; Logout is a destructive action, so the red variant is semantically correct. | Card lift/pointer hovers; neutral logout. |
 
 ## 5. Approvals
 
@@ -383,6 +535,11 @@ Development has not yet started — the next action is to initialize the React f
 - ✅ 2026-08-04 — Phase 6.3: form logic & client-side validation plan — approved (scope: validation only — required/format/length/match rules, inline errors per §13, submission blocked on failure; no localStorage, guards, redirects, auth, API, password toggle, remember-me/forgot-password).
 - ✅ 2026-08-04 — Phase 6.4: mock authentication & route guards plan — approved (scope: RequireAuth + RedirectIfAuthenticated guards, localStorage mock flag, redirects on valid submit and on guarded routes; no backend, API, Axios, JWT, Context API, logout, remember-me, forgot-password, password toggle, or UI changes).
 - ✅ 2026-08-04 — Phase 6.5: authentication polish (logout) plan — approved (scope: Logout ghost button on DashboardPlaceholder clearing the mock flag and navigating to /login; no backend, API, JWT, Context API, or additional features; guards untouched).
+- ✅ 2026-08-06 — Phase 7.1: dashboard shell plan — approved (with adjustments: rename DashboardPlaceholder → DashboardPage instead of deleting; generic "Welcome back!" greeting instead of hardcoded user name).
+- ✅ 2026-08-06 — Phase 7.2: dashboard content plan — approved (scope: statistics cards, recent projects with reusable ProjectCard, EmptyState, recent activity; no routing/layout/navigation changes, mock data only).
+- ✅ 2026-08-06 — Phase 7.3: dashboard navigation & placeholder pages plan — approved (scope: all 5 sidebar items become routes; 4 placeholder pages reusing EmptyState; no auth/guard/content changes, frontend-only).
+- ✅ 2026-08-06 — Phase 7.4: dashboard UI polish plan — approved (scope: visual only — danger-ghost logout, inert search input per user decision, sidebar/header/avatar polish, subtle card hovers with cursor-default, EmptyState presentation, responsive spacing).
+- ✅ 2026-08-06 — Phase 7.5: dashboard cleanup, QA & finalization plan — approved (scope: 3 ARIA fixes only — progressbar semantics, aria-hidden on placeholder chrome, nav label; no formatting churn, renames, or refactors).
 
 ## 6. Open Questions / Blockers
 
@@ -395,46 +552,37 @@ Development has not yet started — the next action is to initialize the React f
 
 ## 7. Current Status
 
-- **Current Phase:** Phase 6 — Authentication UI ([04_DEVELOPMENT_PHASES.md](./04_DEVELOPMENT_PHASES.md) §7)
+- **Current Phase:** Phase 8 — Kanban Board UI ([04_DEVELOPMENT_PHASES.md](./04_DEVELOPMENT_PHASES.md) §9)
 - **Completed:**
-  - ✅ Project Requirements
-  - ✅ Architecture
-  - ✅ Development Rules
-  - ✅ Frontend foundation (Vite + React + Tailwind v4 + React Router + folder structure)
-  - ✅ Design system + Logo Guidelines + Motion Guidelines
-  - ✅ Roadmap updated: UI-first (phases 5–8), then backend (9–11), testing, deployment
-  - ✅ Phase 5.1 — Landing Navbar (build ✅, lint ✅)
-  - ✅ Phase 5.2 — Hero Section + UI refinement (build ✅, lint ✅)
-  - ✅ Phase 5.3 — Features Section (build ✅, lint ✅)
-  - ✅ Phase 5.4 — How It Works Section (build ✅, lint ✅)
-  - ✅ Phase 5.5 — Dashboard Preview Section (build ✅, lint ✅)
-  - ✅ Phase 5.6 — CTA Section (build ✅, lint ✅)
-  - ✅ Phase 5.7 — Footer Section (build ✅, lint ✅) — landing page complete
-  - ✅ Final landing page UI polish pass — spacing, hero balance, realistic
-    dashboard preview, navbar refinements, focus rings, smooth scroll (build ✅, lint ✅)
-  - ✅ Final spacing + dashboard preview refinement — tighter rhythm (~30%),
-    Hero `min-h-[70vh]`, shared `AppWindow.jsx` (hero + preview show one product),
-    window not card (build ✅, lint ✅)
-  - ✅ Phase 6.1 — Authentication Routing & Project Structure (build ✅, lint ✅):
-    empty pages (`/login`, `/register`, `/dashboard` placeholder), `AppRoutes.jsx`,
-    `BrowserRouter` in main.jsx, Navbar + CTA wired to real routes via `<Link>`
-  - ✅ Phase 6.2 — Authentication UI (build ✅, lint ✅): reusable `Input.jsx` +
-    `AuthLayout.jsx`, full Login/Register forms (controlled, `noValidate`,
-    `preventDefault`) — UI only, no logic
-  - ✅ Phase 6.3 — Form Logic & Client-side Validation (build ✅, lint ✅):
-    `errors` object pattern, inline errors via `Input` `error` prop (§13 styles,
-    aria-invalid), shared `isValidEmail()` in `utils/validate.js` — submission
-    blocked when invalid; still no auth
-  - ✅ Phase 6.4 — Mock Authentication & Route Guards (build ✅, lint ✅):
-    `RequireAuth` + `RedirectIfAuthenticated` guards, localStorage mock flag,
-    valid submit → `/dashboard`, guarded route redirects — **Phase 6 complete**
-  - ✅ Phase 6.5 — Authentication Polish: Logout (build ✅, lint ✅):
-    ghost **Logout** button on `DashboardPlaceholder` clears the mock flag and
-    navigates to `/login` — mock auth loop now complete
+  - ✅ Requirements, Architecture, Development Rules, Frontend foundation, Design system, Roadmap (phases 5–13)
+  - ✅ Phase 5 — Landing Page (5.1 Navbar, 5.2 Hero, 5.3 Features, 5.4 How It Works, 5.5 Dashboard Preview, 5.6 CTA, 5.7 Footer + 2 polish passes) — complete
+  - ✅ Phase 6 — Authentication UI (6.1 routing, 6.2 UI, 6.3 validation, 6.4 mock auth + guards, 6.5 logout) — complete
+  - ✅ Phase 7.1 — Dashboard Shell (build ✅, lint ✅): renamed `DashboardPlaceholder` → `DashboardPage.jsx` (generic "Welcome back!" + dashed empty-state card); new `DashboardLayout.jsx` (sticky sidebar `hidden lg:flex` with `NavLink` active states, top header with visual-only search/bell, mock avatar, Logout moved here); `/dashboard` is now a nested layout route (`RequireAuth` → Layout → index Page); `lucide-react` installed (decision 35)
+  - ✅ Phase 7.2 — Dashboard Content (build ✅, lint ✅): reusable `StatCard.jsx`,
+    `ProjectCard.jsx`, `EmptyState.jsx`; `DashboardPage.jsx` rebuilt with
+    statistics grid (4 cards), Recent Projects (3 cards + conditional
+    `EmptyState`), Recent Activity list — all hardcoded mock data inline, no
+    routing/layout changes
+  - ✅ Phase 7.3 — Dashboard Navigation & Placeholder Pages (build ✅, lint ✅):
+    all 5 sidebar items are now real `NavLink` routes with URL-driven active
+    highlight; 4 placeholder pages (`/dashboard/projects`, `/tasks`,
+    `/calendar`, `/settings`) reusing the shared `EmptyState` as nested routes
+    under the protected layout — **Phase 7 (Dashboard UI) complete**
+  - ✅ Phase 7.4 — Dashboard UI Polish (build ✅, lint ✅): danger-ghost Logout,
+    real inert search input (§13 focus ring), avatar/header alignment +
+    responsive padding, sidebar active `text-indigo-700` + 150ms hovers,
+    subtle `cursor-default` card hovers, centered EmptyState, tighter mobile
+    rhythm — visual only, **Phase 7 polish complete**
+  - ✅ Phase 7.5 — Dashboard Cleanup, QA & Finalization (build ✅, lint ✅):
+    full audit (routes, guards, logout, imports, tokens, Tailwind) clean;
+    3 ARIA fixes only (progressbar semantics on ProjectCard, `aria-hidden` on
+    placeholder chrome, nav label) — **Phase 7 (Dashboard UI) fully complete,
+    production-quality and interview-ready**
 - **Next Task:**
-  - Phase 7 — Dashboard UI (layout with sidebar + header, workspaces overview,
-    project cards, task statistics, empty states) — awaiting user approval to start.
+  - Phase 8 — Kanban Board UI (board layout with status columns To Do /
+    In Progress / Done, task cards + status movement — mock data) — awaiting
+    user approval to start.
 
 ---
 
-*Last updated: 2026-08-04.*
+*Last updated: 2026-08-06.*
