@@ -1,17 +1,25 @@
-import { Navigate } from 'react-router'
+import { Navigate, useLocation } from 'react-router'
+import AuthLoadingScreen from '../components/AuthLoadingScreen.jsx'
+import { useAuth } from '../context/authContext.js'
 
-// Route guard: shows the wrapped page only when the mock auth flag is set.
-// Used to protect /dashboard from unauthenticated visitors.
 function RequireAuth({ children }) {
-  // Mock authentication: localStorage holds a simple "logged in" flag
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true'
+  const { status, sessionError, retrySession } = useAuth()
+  const location = useLocation()
 
-  // Not logged in - send the user to the login page
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+  if (status === 'checking' || status === 'error') {
+    return <AuthLoadingScreen error={sessionError} onRetry={retrySession} />
   }
 
-  // Logged in - show the protected page
+  if (status === 'unauthenticated') {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+      />
+    )
+  }
+
   return children
 }
 

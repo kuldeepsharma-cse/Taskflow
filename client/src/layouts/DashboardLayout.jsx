@@ -9,15 +9,17 @@ import {
   Bell,
   LogOut,
 } from 'lucide-react'
+import { useAuth } from '../context/authContext.js'
 
 // Sidebar navigation items (design system §15: lucide icons, stroke 2, 16px inline).
-// Every item points to a real route under /dashboard (see AppRoutes).
+// Every item points to a real route under /dashboard (see AppRoutes) -
+// the paths must stay nested (/dashboard/...) or the router matches nothing.
 const navItems = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
-  { label: 'Projects', to: '/projects', icon: FolderKanban },
-  { label: 'Tasks', to: '/tasks', icon: ListTodo },
-  { label: 'Calendar', to: '/calendar', icon: Calendar },
-  { label: 'Settings', to: '/settings', icon: Settings },
+  { label: 'Projects', to: '/dashboard/projects', icon: FolderKanban },
+  { label: 'Tasks', to: '/dashboard/tasks', icon: ListTodo },
+  { label: 'Calendar', to: '/dashboard/calendar', icon: Calendar },
+  { label: 'Settings', to: '/dashboard/settings', icon: Settings },
 ]
 
 // Shared classes for every nav row - active states differ only by color.
@@ -25,14 +27,28 @@ const navItems = [
 const navRowClasses =
   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/25'
 
-function DashboardLayout() {
-  // Programmatic navigation after logout
-  const navigate = useNavigate()
+function getInitials(name) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
 
-  // Mock logout: clear the auth flag, then send the user to the login page
+  if (parts.length === 0) {
+    return '?'
+  }
+
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+}
+
+function DashboardLayout() {
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
+  const displayName = user?.name || 'TaskFlow user'
+
   function handleLogout() {
-    localStorage.removeItem('isAuthenticated')
-    navigate('/login')
+    logout()
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -104,12 +120,13 @@ function DashboardLayout() {
               />
             </span>
 
-            {/* Mock avatar - placeholder chrome, ignored by screen readers */}
             <span
-              aria-hidden="true"
+              role="img"
+              aria-label={`Signed in as ${displayName}`}
+              title={displayName}
               className="flex h-10 w-10 select-none items-center justify-center rounded-full bg-indigo-600 text-sm font-semibold text-white"
             >
-              AJ
+              {getInitials(displayName)}
             </span>
 
             {/* Logout - danger ghost variant per design system §12;
