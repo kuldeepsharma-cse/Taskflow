@@ -1,0 +1,31 @@
+{
+  "name": "taskflow-server",
+  "private": true,
+  "version": "0.1.0",
+  "description": "TaskFlow REST API - Express server (Phase 9.1 scaffold)",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:status": "prisma migrate status",
+    "db:check": "node src/db/check.js",
+    "db:seed:demo": "node src/db/seed-demo.js",
+    "test": "node --test tests/crud.test.js tests/profile.test.js tests/calendar.test.js"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "prisma": "7.10.1"
+  }
+}
