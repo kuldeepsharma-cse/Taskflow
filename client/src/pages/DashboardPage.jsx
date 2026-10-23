@@ -1,114 +1,221 @@
-import { FolderKanban, ListTodo, CheckCircle2, Clock, FolderOpen } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { FolderKanban, FolderOpen, ListTodo, CheckCircle2, Clock } from 'lucide-react'
 import StatCard from '../components/StatCard.jsx'
 import ProjectCard from '../components/ProjectCard.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import ErrorPanel from '../components/ErrorPanel.jsx'
+import LoadingPanel from '../components/LoadingPanel.jsx'
+import { useAuth } from '../context/authContext.js'
+import { listWorkspaces } from '../services/workspaces.js'
+import { listProjects } from '../services/projects.js'
+import { listTasks } from '../services/tasks.js'
+import { buildDashboardData, formatShortDate } from '../utils/dashboard.js'
 
-// Mock statistics - one card per item, rendered with .map()
-const stats = [
-  {
-    icon: FolderKanban,
-    title: 'Total Projects',
-    value: 12,
-    description: 'Across 3 workspaces',
-  },
-  { icon: ListTodo, title: 'Total Tasks', value: 48, description: 'All projects combined' },
-  { icon: CheckCircle2, title: 'Completed Tasks', value: 31, description: '68% of all tasks' },
-  { icon: Clock, title: 'Pending Tasks', value: 17, description: 'To do and in progress' },
-]
+const taskStatusStyles = {
+  TODO: 'bg-slate-100 text-slate-600',
+  IN_PROGRESS: 'bg-indigo-50 text-indigo-700',
+  DONE: 'bg-green-50 text-green-700',
+}
 
-// Mock projects - hardcoded data, replaced by the API in Phase 11
-const projects = [
-  {
-    name: 'Website Redesign',
-    description: 'New marketing site for the client launch.',
-    progress: 72,
-    tasks: 12,
-    dueDate: 'Aug 28',
-    status: 'On Track',
-  },
-  {
-    name: 'Mobile App MVP',
-    description: 'Core screens and navigation for the beta release.',
-    progress: 45,
-    tasks: 24,
-    dueDate: 'Sep 12',
-    status: 'At Risk',
-  },
-  {
-    name: 'Backend Migration',
-    description: 'Moving the services to the new stack.',
-    progress: 90,
-    tasks: 8,
-    dueDate: 'Aug 15',
-    status: 'Behind',
-  },
-]
+const taskStatusLabels = {
+  TODO: 'To Do',
+  IN_PROGRESS: 'In Progress',
+  DONE: 'Done',
+}
 
-// Mock recent activity - dot color + text + time, same style as the landing preview
-const activities = [
-  { dot: 'bg-indigo-400', text: "Created project 'Website Redesign'", time: '2h ago' },
-  { dot: 'bg-green-400', text: "Completed task 'Deploy landing page'", time: '5h ago' },
-  { dot: 'bg-slate-300', text: 'Added 3 tasks to Mobile App MVP', time: 'Yesterday' },
-  { dot: 'bg-amber-400', text: "Moved 'API docs' to In Progress", time: '2 days ago' },
-]
+function pluralize(count, singular) {
+  return `${count} ${singular}${count === 1 ? '' : 's'}`
+}
 
 function DashboardPage() {
+  const { user } = useAuth()
+  const firstName = user?.name?.trim().split(/\s+/)[0]
+  const [workspaces, setWorkspaces] = useState([])
+  const [projects, setProjects] = useState([])
+  const [tasks, setTasks] = useState([])
+  const [status, setStatus] = useState('loading')
+  const [error, setError] = useState(null)
+  const [reloadKey, setReloadKey] = useState(0)
+
+  useEffect(() => {
+    let active = true
+
+    setStatus('loading')
+    setError(null)
+
+    async function loadDashboard() {
+      try {
+        const nextWorkspaces = await listWorkspaces()
+        const projectLists = await Promise.all(
+          nextWorkspaces.map((workspace) => listProjects(workspace.id)),
+        )
+        const nextProjects = projectLists.flat()
+        const taskLists = await Promise.all(
+          nextProjects.map((project) => listTasks(project.id)),
+        )
+        const nextTasks = taskLists.flat()
+
+        if (!active) {
+          return
+        }
+
+        setWorkspaces(nextWorkspaces)
+        setProjects(nextProjects)
+        setTasks(nextTasks)
+        setStatus('ready')
+      } catch (loadError) {
+        if (!active) {
+          return
+        }
+
+        setStatus('error')
+        setError(loadError)
+      }
+    }
+
+    loadDashboard()
+
+    return () => {
+      active = false
+    }
+  }, [reloadKey])
+
+  const dashboard = useMemo(
+    () => buildDashboardData(workspaces, projects, tasks),
+    [workspaces, projects, tasks],
+  )
+
+  const statCards = [
+    {
+      icon: FolderKanban,
+      title: 'Workspaces',
+      value: dashboard.stats.workspaces,
+      description: pluralize(dashboard.stats.projects, 'project'),
+    },
+    {
+      icon: ListTodo,
+      title: 'Total Tasks',
+      value: dashboard.stats.total,
+      description: `${dashboard.stats.todo} to do · ${dashboard.stats.inProgress} in progress`,
+    },
+    {
+      icon: CheckCircle2,
+      title: 'Completed Tasks',
+      value: dashboard.stats.done,
+      description: `${dashboard.stats.completionPercentage}% of all tasks`,
+    },
+    {
+      icon: Clock,
+      title: 'Pending Tasks',
+      value: dashboard.stats.todo + dashboard.stats.inProgress,
+      description: 'To do and in progress',
+    },
+  ]
+
+  function retryDashboard() {
+    setReloadKey((key) => key + 1)
+  }
+
   return (
     <div className="space-y-6 lg:space-y-8">
-      {/* Page header - generic greeting */}
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Welcome back!</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">
+          Welcome back{firstName ? `, ${firstName}` : ''}!
+        </h1>
         <p className="mt-1.5 text-sm text-slate-600">
           Here is a quick overview of your workspaces, projects, and tasks.
         </p>
       </div>
 
-      {/* Statistics - 4 cards: 1 column mobile, 2 tablet, 4 desktop */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <StatCard
-            key={stat.title}
-            icon={stat.icon}
-            title={stat.title}
-            value={stat.value}
-            description={stat.description}
-          />
-        ))}
-      </section>
+      {status === 'loading' && <LoadingPanel label="Loading dashboard…" />}
 
-      {/* Recent projects - reusable EmptyState shows when there are none */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">Recent Projects</h2>
-        {projects.length === 0 ? (
-          <EmptyState
-            icon={FolderOpen}
-            title="No projects yet"
-            description="Projects you create will appear here."
-          />
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {projects.map((project) => (
-              <ProjectCard key={project.name} project={project} />
-            ))}
-          </div>
-        )}
-      </section>
+      {status === 'error' && (
+        <ErrorPanel
+          message={
+            error?.message ||
+            'Unable to load your dashboard. Please try again.'
+          }
+          onRetry={retryDashboard}
+          label="Try again"
+        />
+      )}
 
-      {/* Recent activity */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">Recent Activity</h2>
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <ul className="space-y-4">
-            {activities.map((activity) => (
-              <li key={activity.text} className="flex items-center gap-3">
-                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${activity.dot}`} />
-                <p className="flex-1 text-sm text-slate-600">{activity.text}</p>
-                <p className="text-xs text-slate-400">{activity.time}</p>
-              </li>
+      {status === 'ready' && (
+        <>
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {statCards.map((stat) => (
+              <StatCard
+                key={stat.title}
+                icon={stat.icon}
+                title={stat.title}
+                value={stat.value}
+                description={stat.description}
+              />
             ))}
-          </ul>
-        </div>
-      </section>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold text-slate-900">
+              Recent Projects
+            </h2>
+            {dashboard.recentProjects.length === 0 ? (
+              <EmptyState
+                icon={FolderOpen}
+                title="No projects yet"
+                description="Create a workspace and project to see it here."
+              />
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {dashboard.recentProjects.map((project) => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold text-slate-900">Recent Tasks</h2>
+            {dashboard.recentTasks.length === 0 ? (
+              <EmptyState
+                icon={ListTodo}
+                title="No tasks yet"
+                description="Tasks you create will appear here."
+              />
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <ul className="divide-y divide-slate-100">
+                  {dashboard.recentTasks.map((task) => (
+                    <li
+                      key={task.id}
+                      className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-slate-900">
+                          {task.title}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-slate-500">
+                          {task.projectName} · {task.workspaceName}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          taskStatusStyles[task.status] ||
+                          'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {taskStatusLabels[task.status] || task.status}
+                      </span>
+                      <span className="shrink-0 text-xs text-slate-400">
+                        Updated {formatShortDate(task.updatedAt)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+        </>
+      )}
     </div>
   )
 }
